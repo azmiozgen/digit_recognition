@@ -1,34 +1,53 @@
 import numpy as np
-import os, random
+import os, sys
+import random
 
-with open(os.path.abspath("../data/train.csv")) as f:
-    training_lines_all = [line for line in f]
+## Hyper-parameters
+RATIO = 0.8   ## What ratio of total lines used for training (the rest is for validation)
+HIDDEN_SIZE = 1000
+LR = 1e-4
+BATCH_SIZE = 50
+EPOCH = 20
 
-training_lines = [np.array(line.split(","), dtype='float32') for line in training_lines_all[1:]]
+filePath = os.path.abspath(sys.argv[0])
+fileName = os.path.basename(sys.argv[0])
+repoPath = filePath.rstrip(fileName).rstrip("/").rstrip("src")
+with open(repoPath + "/data/train.csv") as f:
+    lines_all = [line for line in f]
+
+lines = [np.array(line.split(","), dtype='float32') for line in lines_all[1:]]
+random.shuffle(lines)
 
 training_images = []
 training_labels = []
 training_set = []
-for line in training_lines:
+validation_images = []
+validation_labels = []
+validation_set = []
+for line in lines[:int(len(lines) * RATIO)]:
     one_hot = np.zeros((10), dtype='float32')
-    one_hot[line[0]] = 1.0
+    one_hot[int(line[0])] = 1.0
     training_labels.append(one_hot)
     training_images.append(np.array(line[1:], dtype='float32'))
     training_set.append((one_hot, line[1:]))
+for line in lines[int(len(lines) * RATIO):]:
+	one_hot = np.zeros((10), dtype='float32')
+	one_hot[int(line[0])] = 1.0
+	validation_labels.append(one_hot)
+	validation_images.append(np.array(line[1:], dtype='float32'))
+	validation_set.append((one_hot, line[1:]))
+
+## Constant
+TRAINING_SIZE = int(len(training_set) * RATIO)
+VALIDATION_SIZE = len(training_set) - TRAINING_SIZE
+TRAINING_BATCH = TRAINING_SIZE / BATCH_SIZE
+VALIDATION_BATCH = VALIDATION_SIZE / BATCH_SIZE
 
 ## Preparing network
 
 import tensorflow as tf
 import time
 
-## Hyper-parameters
-HIDDEN_SIZE = 1000
-LR = 1e-3
-BATCH_SIZE = 100
-EPOCH = 30
-## Constant
-TRAINING_SIZE = len(training_set)
-BATCH = TRAINING_SIZE / BATCH_SIZE
 
 ## Input vector
 x = tf.placeholder(tf.float32, [None, 784])  ## Here 'None' means that a dimension can be of any length
@@ -60,31 +79,52 @@ else:
 
 saver = tf.train.Saver()
 
+##############
+## Training ##
+##############
 
-## Training
-
-saver.restore(sess, "../model/MLP_tensorflow/MLP_tensorflow.ckpt")
+saver.restore(sess, repoPath + "model/MLP_tensorflow/MLP_tensorflow.ckpt")
 print("Model restored.")
+
+validation_batches = [validation_set[k:k + BATCH_SIZE] for k in range(0, VALIDATION_SIZE, BATCH_SIZE)]
+validation_batch_images = np.array([np.array([digit[1] for digit in batch], dtype='float32')
+								  for batch in validation_batches], dtype='float32')
+validation_batch_labels = np.array([np.array([digit[0] for digit in batch], dtype='float32')
+								  for batch in validation_batches], dtype='float32')
 
 t0 = time.time()
 for i in xrange(EPOCH):
-    random.shuffle(training_set)
-    batches = [training_set[k:k + BATCH_SIZE] for k in range(0, TRAINING_SIZE, BATCH_SIZE)]
+	random.shuffle(training_set)
+	training_batches = [training_set[k:k + BATCH_SIZE] for k in range(0, TRAINING_SIZE, BATCH_SIZE)]
 
-    batch_images = np.array([np.array([digit[1] for digit in batch], dtype='float32')
-                             for batch in batches], dtype='float32')
-    batch_labels = np.array([np.array([digit[0] for digit in batch], dtype='float32')
-                             for batch in batches], dtype='float32')
+	training_batch_images = np.array([np.array([digit[1] for digit in batch], dtype='float32')
+											    for batch in training_batches], dtype='float32')
+	training_batch_labels = np.array([np.array([digit[0] for digit in batch], dtype='float32')
+											    for batch in training_batches], dtype='float32')
 
-    total_accuracy = 0.0
-    for j in xrange(BATCH):
-        sess.run(train_step, feed_dict={x: batch_images[j], y_: batch_labels[j]})
-        batch_accuracy = sess.run(accuracy, feed_dict={x: batch_images[j], y_: batch_labels[j]})
+	total_training_accuracy = 0.0
+	for j in xrange(TRAINING_BATCH):
+		sess.run(train_step, feed_dict={x: training_batch_images[j], y_: training_batch_labels[j]})
+		batch_accuracy = sess.run(accuracy, feed_dict={x: training_batch_images[j], y_: training_batch_labels[j]})
+		total_training_accuracy += batch_accuracy
 
-        total_accuracy += batch_accuracy
-    print "Epoch",  (i + 1), ": {0:f}".format(total_accuracy / BATCH)
+	################
+	## Validating ##
+	################
+
+
+	print "Epoch",  (i + 1), "\n\tTraining accuracy: {0:f}".format(total_training_accuracy / TRAINING_BATCH)
+
+	if RATIO != 1.0:
+		total_validation_accuracy = 0.0
+		for j in xrange(VALIDATION_BATCH):
+			batch_accuracy = sess.run(accuracy, feed_dict={x: validation_batch_images[j], y_: validation_batch_labels[j]})
+			total_validation_accuracy += batch_accuracy
+
+			print "\tValidation accuracy: {0:f}".format(total_validation_accuracy / VALIDATION_BATCH)
+	
 print "Total time:", time.time() - t0
 
-save_path = saver.save(sess, "../model/MLP_tensorflow/MLP_tensorflow.ckpt")
+save_path = saver.save(sess, repoPath + "model/MLP_tensorflow/MLP_tensorflow.ckpt")
 print("Model saved in file: %s" %save_path)
 sess.close()

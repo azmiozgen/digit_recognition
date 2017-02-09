@@ -1,2 +1,2 @@
-model_checkpoint_path: "MLP_tensorflow.ckpt"
-all_model_checkpoint_paths: "MLP_tensorflow.ckpt"
+model_checkpoint_path: "/home/pollux/repo/digit_recognizer/model/MLP_tensorflow/MLP_tensorflow.ckpt"
+all_model_checkpoint_paths: "/home/pollux/repo/digit_recognizer/model/MLP_tensorflow/MLP_tensorflow.ckpt"
