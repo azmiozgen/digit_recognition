@@ -30,15 +30,10 @@ y2 = tf.matmul(y1, W2) + b2
 
 saver = tf.train.Saver()
 
-## Launch the model in a session
-# sess = tf.Session()
-# if tf.__version__ == '0.10.0':
-# 	sess.run(tf.initialize_all_variables())   ## tensorflow 0.10
-# else:
-# 	sess.run(tf.global_variables_initializer())   ## tensorflow 0.12
+#############
+## Testing ##
+#############
 
-
-## Testing
 with tf.Session() as sess:
 	saver.restore(sess, repoPath + "model/MLP_tensorflow/MLP_tensorflow.ckpt")
 	print("Model restored.")

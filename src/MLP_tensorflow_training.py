@@ -3,11 +3,11 @@ import os, sys
 import random
 
 ## Hyper-parameters
-RATIO = 0.8   ## What ratio of total lines used for training (the rest is for validation)
+RATIO = 1.0   ## What ratio of total lines used for training (the rest is for validation)
 HIDDEN_SIZE = 1000
-LR = 1e-4
-BATCH_SIZE = 50
-EPOCH = 20
+LR = 0.5e-5
+BATCH_SIZE = 100
+EPOCH = 1000
 
 filePath = os.path.abspath(sys.argv[0])
 fileName = os.path.basename(sys.argv[0])
@@ -38,8 +38,8 @@ for line in lines[int(len(lines) * RATIO):]:
 	validation_set.append((one_hot, line[1:]))
 
 ## Constant
-TRAINING_SIZE = int(len(training_set) * RATIO)
-VALIDATION_SIZE = len(training_set) - TRAINING_SIZE
+TRAINING_SIZE = int(len(lines) * RATIO)
+VALIDATION_SIZE = len(lines) - TRAINING_SIZE
 TRAINING_BATCH = TRAINING_SIZE / BATCH_SIZE
 VALIDATION_BATCH = VALIDATION_SIZE / BATCH_SIZE
 
@@ -121,8 +121,8 @@ for i in xrange(EPOCH):
 			batch_accuracy = sess.run(accuracy, feed_dict={x: validation_batch_images[j], y_: validation_batch_labels[j]})
 			total_validation_accuracy += batch_accuracy
 
-			print "\tValidation accuracy: {0:f}".format(total_validation_accuracy / VALIDATION_BATCH)
-	
+		print "\tValidation accuracy: {0:f}".format(total_validation_accuracy / VALIDATION_BATCH)
+
 print "Total time:", time.time() - t0
 
 save_path = saver.save(sess, repoPath + "model/MLP_tensorflow/MLP_tensorflow.ckpt")
