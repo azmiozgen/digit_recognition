@@ -1,0 +1,17 @@
+conv-pool + conv-pool + fc
+all convs strides : 1x1
+all pools : 2x2
+L2_REG = 0.01
+
+conv-pool1 = { kernel : 5x5,
+			   feature_map : 32,
+}
+
+conv-pool2 = { kernel : 5x5,
+			   feature_map : 64,
+}
+
+fc_size = 1024
+
+top accuracy on extended training set : 0.998691
+top accuracy on kaggle test : 0.99486

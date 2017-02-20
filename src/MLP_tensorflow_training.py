@@ -13,9 +13,9 @@ filePath = os.path.abspath(sys.argv[0])
 fileName = os.path.basename(sys.argv[0])
 repoPath = filePath.rstrip(fileName).rstrip("/").rstrip("src")
 with open(repoPath + "/data/train.csv") as f:
-    lines_all = [line for line in f]
+	lines = [line for line in f]
 
-lines = [np.array(line.split(","), dtype='float32') for line in lines_all[1:]]
+lines = [np.array(line.split(","), dtype='float32') for line in lines[1:]]
 random.shuffle(lines)
 
 training_images = []
@@ -25,11 +25,11 @@ validation_images = []
 validation_labels = []
 validation_set = []
 for line in lines[:int(len(lines) * RATIO)]:
-    one_hot = np.zeros((10), dtype='float32')
-    one_hot[int(line[0])] = 1.0
-    training_labels.append(one_hot)
-    training_images.append(np.array(line[1:], dtype='float32'))
-    training_set.append((one_hot, line[1:]))
+	one_hot = np.zeros((10), dtype='float32')
+	one_hot[int(line[0])] = 1.0
+	training_labels.append(one_hot)
+	training_images.append(np.array(line[1:], dtype='float32'))
+	training_set.append((one_hot, line[1:]))
 for line in lines[int(len(lines) * RATIO):]:
 	one_hot = np.zeros((10), dtype='float32')
 	one_hot[int(line[0])] = 1.0

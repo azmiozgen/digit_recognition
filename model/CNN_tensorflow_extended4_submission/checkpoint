@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/acrux/repo/digit_recognition/model/CNN_tensorflow_extended4_submission/CNN_tensorflow_extended4_submission.ckpt"
+all_model_checkpoint_paths: "/home/acrux/repo/digit_recognition/model/CNN_tensorflow_extended4_submission/CNN_tensorflow_extended4_submission.ckpt"

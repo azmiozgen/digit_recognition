@@ -1,17 +1,22 @@
 import numpy as np
+import os, sys
 
 ## Hyper-parameters
 RATIO = 1.0   ## What ratio of total lines used for training (the rest is for validation)
 FC_SIZE = 1024
 LR = 1e-5
 L2_REG = 0.01
-EPOCH = 50
-BATCH_SIZE = 200
+EPOCH = 3
+BATCH_SIZE = 500
 KERNEL_SIZE = 5     ## One side (square)
-FEATURE_MAP1 = 32  ## First conv layer feature maps
+FEATURE_MAP1 = 64  ## First conv layer feature maps
 FEATURE_MAP2 = 64   ## Second conv layer feature maps
+ADAPTIVE_LR = False
 
-with open("../data/train.csv") as f:
+filePath = os.path.abspath(sys.argv[0])
+fileName = os.path.basename(sys.argv[0])
+repoPath = filePath.rstrip(fileName).rstrip("/").rstrip("src")
+with open(repoPath + "data/extended4_train.csv") as f:
 	lines_all = [line for line in f]
 
 lines = [np.array(line.split(","), dtype='float32') for line in lines_all[1:]]
@@ -117,8 +122,8 @@ h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 with tf.variable_scope("layer4"):
 	W_fc2 = tf.get_variable('W_fc1', shape=(FC_SIZE, 10),
 								initializer=tf.contrib.layers.xavier_initializer())
-	b_fc2 = tf.get_variable('b_fc2', shape=(10),
-								initializer=tf.contrib.layers.xavier_initializer())
+	# b_fc2 = tf.get_variable('b_fc2', shape=(10),
+	# 							initializer=tf.contrib.layers.xavier_initializer())
 
 y_conv = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
 
@@ -127,7 +132,7 @@ y_conv = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
 ####################
 
 # cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y_conv + 1e-10), reduction_indices=[1]))
-cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y_conv, y_) +
+cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_conv, labels=y_) +
 								L2_REG * tf.nn.l2_loss(W_conv1) +
 								L2_REG * tf.nn.l2_loss(b_conv1) +
 								L2_REG * tf.nn.l2_loss(W_conv2) +
@@ -153,7 +158,7 @@ with tf.Session() as sess:
 	## Training ##
 	##############
 
-	saver.restore(sess, "../model/CNN_tensorflow_submission/CNN_tensorflow_submission.ckpt")
+	saver.restore(sess, repoPath + "model/CNN_tensorflow_extended4_submission1/CNN_tensorflow_extended4_submission1.ckpt")
 	print("Model restored.")
 
 	for i in xrange(EPOCH * TRAINING_BATCH):
@@ -185,16 +190,17 @@ with tf.Session() as sess:
 				## Adaptive learning rate ##
 				############################
 
-				if validation_accuracy > last_validation_accuracy and LR >= 1e-3:
-					LR += LR * 0.05       ## Increase learning rate by %5 in case of higher accuracy
-				elif validation_accuracy > last_validation_accuracy  and LR < 1e-3:
-					LR += LR * 0.90       ## Increase learning rate by %90 when learning is slower
-				else:
-					LR -= LR * 0.50       ## Half the learning rate in case of lower accuracy
-				last_validation_accuracy = validation_accuracy
-				print "\tLearning rate: ", LR
+				if ADAPTIVE_LR:
+					if validation_accuracy > last_validation_accuracy and LR >= 1e-4:
+						LR += LR * 0.05       ## Increase learning rate by %5 in case of higher accuracy
+					elif validation_accuracy > last_validation_accuracy  and LR < 1e-4:
+						LR += LR * 0.90       ## Increase learning rate by %90 when learning is slower
+					else:
+						LR -= LR * 0.50       ## Half the learning rate in case of lower accuracy
+					last_validation_accuracy = validation_accuracy
+					print "\tLearning rate: ", LR
 
 	print "Training time:", time.time() - t0
 
-	save_path = saver.save(sess, "../model/CNN_tensorflow_submission/CNN_tensorflow_submission.ckpt")
+	save_path = saver.save(sess, repoPath + "model/CNN_tensorflow_extended4_submission1/CNN_tensorflow_extended4_submission1.ckpt")
 	print("Model saved in file: %s" %save_path)
