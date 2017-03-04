@@ -3,14 +3,18 @@ import os, sys
 
 ## Hyper-parameters
 RATIO = 1.0   ## What ratio of total lines used for training (the rest is for validation)
-FC_SIZE = 1024
-LR = 1e-5
+FC_SIZE1 = 512
+FC_SIZE2 = 256
+LR = 1e-4
 L2_REG = 0.01
-EPOCH = 3
+EPOCH = 5
 BATCH_SIZE = 500
-KERNEL_SIZE = 5     ## One side (square)
-FEATURE_MAP1 = 64  ## First conv layer feature maps
-FEATURE_MAP2 = 64   ## Second conv layer feature maps
+KERNEL_SIZE1 = 3     ## One side (square)
+KERNEL_SIZE2 = 5     ## One side (square)
+KERNEL_SIZE3 = 5     ## One side (square)
+FEATURE_MAP1 = 64    ## First conv layer feature maps
+FEATURE_MAP2 = 32    ## Second conv layer feature maps
+FEATURE_MAP3 = 32    ## Third conv layer feature maps
 ADAPTIVE_LR = False
 
 filePath = os.path.abspath(sys.argv[0])
@@ -81,7 +85,7 @@ y_ = tf.placeholder(tf.float32, [None, 10])  ## Correct answers
 ## 1st conv layer
 ## [Kernel size1, Kernel size2, first layer channel, second layer channel channel]
 with tf.variable_scope("layer1"):
-	W_conv1 = tf.get_variable('W_conv1', shape=(KERNEL_SIZE, KERNEL_SIZE, 1, FEATURE_MAP1),
+	W_conv1 = tf.get_variable('W_conv1', shape=(KERNEL_SIZE1, KERNEL_SIZE1, 1, FEATURE_MAP1),
 								initializer=tf.contrib.layers.xavier_initializer())
 	b_conv1 = tf.get_variable('b_conv1', shape=(FEATURE_MAP1),
 								initializer=tf.contrib.layers.xavier_initializer())
@@ -93,39 +97,59 @@ h_pool1 = max_pool_2x2(h_conv1)
 
 ## 2nd conv layer
 with tf.variable_scope("layer2"):
-	W_conv2 = tf.get_variable('W_conv2', shape=(KERNEL_SIZE, KERNEL_SIZE, FEATURE_MAP1, FEATURE_MAP2),
+	W_conv2 = tf.get_variable('W_conv2', shape=(KERNEL_SIZE2, KERNEL_SIZE2, FEATURE_MAP1, FEATURE_MAP2),
 								initializer=tf.contrib.layers.xavier_initializer())
-	b_conv2 = tf.get_variable('b_conv1', shape=(FEATURE_MAP2),
+	b_conv2 = tf.get_variable('b_conv2', shape=(FEATURE_MAP2),
 								initializer=tf.contrib.layers.xavier_initializer())
 
 h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
 h_pool2 = max_pool_2x2(h_conv2)
 
-## Fully connected layer
+## 3rd conv layer (no pooling)
+with tf.variable_scope("layer3"):
+	W_conv3 = tf.get_variable('W_conv3', shape=(KERNEL_SIZE3, KERNEL_SIZE3, FEATURE_MAP2, FEATURE_MAP3),
+								initializer=tf.contrib.layers.xavier_initializer())
+	b_conv3 = tf.get_variable('b_conv3', shape=(FEATURE_MAP3),
+								initializer=tf.contrib.layers.xavier_initializer())
+
+h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3) + b_conv3)
+
+## Fully connected layers
 
 ## Image shape halves twice. (28x28) -> (14x14) -> (7x7) by max_pool_2x2
 ## Conv. layer does not change image size because of padding='SAME'
-with tf.variable_scope("layer3"):
-	W_fc1 = tf.get_variable('W_fc1', shape=(7 * 7 * FEATURE_MAP2, FC_SIZE),
+with tf.variable_scope("layer4"):
+	W_fc1 = tf.get_variable('W_fc1', shape=(7 * 7 * FEATURE_MAP3, FC_SIZE1),
 								initializer=tf.contrib.layers.xavier_initializer())
-	b_fc1 = tf.get_variable('b_fc1', shape=(FC_SIZE),
+	b_fc1 = tf.get_variable('b_fc1', shape=(FC_SIZE1),
 								initializer=tf.contrib.layers.xavier_initializer())
 
-h_pool2_flat = tf.reshape(h_pool2, [-1, 7 * 7 * FEATURE_MAP2])
-h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+h_conv3_flat = tf.reshape(h_conv3, [-1, 7 * 7 * FEATURE_MAP3])
+h_fc1 = tf.nn.relu(tf.matmul(h_conv3_flat, W_fc1) + b_fc1)
 
-## Dropout
+## Dropout1
 keep_prob = tf.placeholder(tf.float32)
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
-## Softmax output
-with tf.variable_scope("layer4"):
-	W_fc2 = tf.get_variable('W_fc1', shape=(FC_SIZE, 10),
+with tf.variable_scope("layer5"):
+	W_fc2 = tf.get_variable('W_fc2', shape=(FC_SIZE1, FC_SIZE2),
 								initializer=tf.contrib.layers.xavier_initializer())
-	# b_fc2 = tf.get_variable('b_fc2', shape=(10),
-	# 							initializer=tf.contrib.layers.xavier_initializer())
+	b_fc2 = tf.get_variable('b_fc2', shape=(FC_SIZE2),
+								initializer=tf.contrib.layers.xavier_initializer())
 
-y_conv = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
+h_fc2 = tf.nn.relu(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
+
+## Dropout2
+h_fc2_drop = tf.nn.dropout(h_fc2, keep_prob)
+
+## Softmax output
+with tf.variable_scope("layer6"):
+	W_fc3 = tf.get_variable('W_fc3', shape=(FC_SIZE2, 10),
+								initializer=tf.contrib.layers.xavier_initializer())
+	b_fc3 = tf.get_variable('b_fc3', shape=(10),
+								initializer=tf.contrib.layers.xavier_initializer())
+
+y_conv = tf.nn.softmax(tf.matmul(h_fc2_drop, W_fc3) + b_fc3)
 
 ####################
 ## Cost, accuracy ##
@@ -158,8 +182,8 @@ with tf.Session() as sess:
 	## Training ##
 	##############
 
-	saver.restore(sess, repoPath + "model/CNN_tensorflow_extended4_submission1/CNN_tensorflow_extended4_submission1.ckpt")
-	print("Model restored.")
+	# saver.restore(sess, repoPath + "model/CNN_tensorflow_extended4_submission1/CNN_tensorflow_extended4_submission1.ckpt")
+	# print("Model restored.")
 
 	for i in xrange(EPOCH * TRAINING_BATCH):
 
@@ -202,5 +226,5 @@ with tf.Session() as sess:
 
 	print "Training time:", time.time() - t0
 
-	save_path = saver.save(sess, repoPath + "model/CNN_tensorflow_extended4_submission1/CNN_tensorflow_extended4_submission1.ckpt")
+	save_path = saver.save(sess, repoPath + "model/CNN_tensorflow_extended4_submission2/CNN_tensorflow_extended4_submission2.ckpt")
 	print("Model saved in file: %s" %save_path)

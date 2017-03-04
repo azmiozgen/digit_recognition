@@ -21,7 +21,7 @@ batches = [test_images[k:k + BATCH_SIZE] for k in range(0, TEST_SIZE, BATCH_SIZE
 ## Hyper-parameters
 FC_SIZE = 1024
 KERNEL_SIZE = 5     ## One side (square)
-FEATURE_MAP1 = 32  ## First conv layer feature maps
+FEATURE_MAP1 = 64  ## First conv layer feature maps
 FEATURE_MAP2 = 64   ## Second conv layer feature maps
 
 ## Variables
@@ -69,10 +69,10 @@ y_conv = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
 saver = tf.train.Saver()
 t0 = time.time()
 with tf.Session() as sess:
-	saver.restore(sess, repoPath + "model/CNN_tensorflow_extended4_submission/CNN_tensorflow_extended4_submission.ckpt")
+	saver.restore(sess, repoPath + "model/CNN_tensorflow_extended4_submission1/CNN_tensorflow_extended4_submission1.ckpt")
 	print("Model restored.")
 
-	with open(repoPath + "data/CNN_tensorflow_extended4_submission.csv", "w") as sub:
+	with open(repoPath + "data/CNN_tensorflow_extended4_submission1.csv", "w") as sub:
 		sub.write("ImageId,Label\n")
 		for i in xrange(BATCH):
 			classification_batch = sess.run(tf.argmax(y_conv, 1), feed_dict={x: batches[i], keep_prob: 1.0})
