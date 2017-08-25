@@ -5,9 +5,9 @@ import os, sys
 RATIO = 1.0   ## What ratio of total lines used for training (the rest is for validation)
 FC_SIZE1 = 512
 FC_SIZE2 = 256
-LR = 1e-4
+LR = 1e-5
 L2_REG = 0.01
-EPOCH = 5
+EPOCH = 100
 BATCH_SIZE = 500
 KERNEL_SIZE1 = 3     ## One side (square)
 KERNEL_SIZE2 = 5     ## One side (square)
@@ -114,7 +114,9 @@ with tf.variable_scope("layer3"):
 
 h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3) + b_conv3)
 
+##
 ## Fully connected layers
+##
 
 ## Image shape halves twice. (28x28) -> (14x14) -> (7x7) by max_pool_2x2
 ## Conv. layer does not change image size because of padding='SAME'
@@ -182,8 +184,8 @@ with tf.Session() as sess:
 	## Training ##
 	##############
 
-	# saver.restore(sess, repoPath + "model/CNN_tensorflow_extended4_submission1/CNN_tensorflow_extended4_submission1.ckpt")
-	# print("Model restored.")
+	saver.restore(sess, repoPath + "model/CNN_tensorflow_extended4_submission2/CNN_tensorflow_extended4_submission2.ckpt")
+	print("Model restored.")
 
 	for i in xrange(EPOCH * TRAINING_BATCH):
 
